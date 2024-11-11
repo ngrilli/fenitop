@@ -137,7 +137,7 @@ class Communicator():
 
         element = func_space.ufl_element()
         if self.comm.rank == 0:
-            func_space_serial = dolfinx.fem.FunctionSpace(mesh_serial, element)
+            func_space_serial = dolfinx.fem.functionspace(mesh_serial, element)
             nodes_serial = func_space_serial.tabulate_dof_coordinates()
 
             nodes_collect = np.zeros((num_global_nodes, 3))

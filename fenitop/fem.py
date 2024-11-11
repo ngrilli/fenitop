@@ -4,6 +4,8 @@ Authors:
 - Chao Wang (chaow4@illinois.edu)
 - Xiaojia Shelly Zhang (zhangxs@illinois.edu)
 
+- Nicolò Grilli adapted to FEniCSx version 0.8 and introduced thermal strain
+
 Sponsors:
 - U.S. National Science Foundation (NSF) EAGER Award CMMI-2127134
 - U.S. Defense Advanced Research Projects Agency (DARPA) Young Faculty Award
@@ -21,8 +23,9 @@ Reference:
 import numpy as np
 import ufl
 from dolfinx.mesh import locate_entities_boundary, meshtags
-from dolfinx.fem import (VectorFunctionSpace, FunctionSpace, Function, Constant,
+from dolfinx.fem import (FunctionSpace, Function, Constant,
                          dirichletbc, locate_dofs_topological)
+from dolfinx.fem import (Expression, form, functionspace) 
 
 from fenitop.utility import create_mechanism_vectors
 from fenitop.utility import LinearProblem
@@ -32,9 +35,9 @@ def form_fem(fem, opt):
     """Form an FEA problem."""
     # Function spaces and functions
     mesh = fem["mesh"]
-    V = VectorFunctionSpace(mesh, ("CG", 1))
-    S0 = FunctionSpace(mesh, ("DG", 0))
-    S = FunctionSpace(mesh, ("CG", 1))
+    V = functionspace(mesh, ("CG", 1, (mesh.geometry.dim,)))
+    S0 = functionspace(mesh, ("DG", 0))
+    S = functionspace(mesh, ("CG", 1))
     u, v = ufl.TrialFunction(V), ufl.TestFunction(V)
     u_field = Function(V)  # Displacement field
     lambda_field = Function(V)  # Adjoint variable field
@@ -43,6 +46,8 @@ def form_fem(fem, opt):
 
     # Material interpolation
     E0, nu = fem["young's modulus"], fem["poisson's ratio"]
+    volumetric_thermal_expansion = fem["volumetric thermal expansion"]
+    reference_temperature = fem["reference temperature"]
     p, eps = opt["penalty"], opt["epsilon"]
     E = (eps + (1-eps)*rho_phys_field**p) * E0
     _lambda, mu = E*nu/(1+nu)/(1-2*nu), E/(2*(1+nu))  # Lame constants
@@ -53,7 +58,10 @@ def form_fem(fem, opt):
 
     def sigma(u):  # 3D or plane strain
         return 2*mu*epsilon(u) + _lambda*ufl.tr(epsilon(u))*ufl.Identity(len(u))
-
+        
+    def sigma_thermal(): # thermal stress independent from u goes into the rhs
+        return 0.0
+        
     # Boundary conditions
     dim = mesh.topology.dim
     fdim = dim - 1
@@ -81,7 +89,7 @@ def form_fem(fem, opt):
 
     # Establish the equilibrium and adjoint equations
     lhs = ufl.inner(sigma(u), epsilon(v))*dx
-    rhs = ufl.dot(b, v)*dx
+    rhs = ufl.dot(b, v)*dx # add thermal part here
     for marker, t in enumerate(tractions):
         rhs += ufl.dot(t, v)*ds(marker)
     if opt["opt_compliance"]:
@@ -93,6 +101,7 @@ def form_fem(fem, opt):
                                    spring_vec, [bc], fem["petsc_options"])
 
     # Define optimization-related variables
+    # need to add thermal part here?
     opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx
     opt["compliance"] = ufl.inner(sigma(u_field), epsilon(u_field))*dx
     opt["volume"] = rho_phys_field*dx
