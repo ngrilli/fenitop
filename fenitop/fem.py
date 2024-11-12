@@ -43,6 +43,12 @@ def form_fem(fem, opt):
     lambda_field = Function(V)  # Adjoint variable field
     rho_field = Function(S0)  # Density field
     rho_phys_field = Function(S)  # Physical density field
+    
+    x = ufl.SpatialCoordinate(mesh)
+    T = Function(S) # temperature field 
+    T_ex = 293.0 + 2000000*ufl.exp(-((x[0]-40.0)**2-(x[1]-10.0)**2)/25)
+    expr = Expression(T_ex, V.element.interpolation_points())
+    T.interpolate(expr)
 
     # Material interpolation
     E0, nu = fem["young's modulus"], fem["poisson's ratio"]
@@ -57,10 +63,10 @@ def form_fem(fem, opt):
         return ufl.sym(ufl.grad(u))
 
     def sigma(u):  # 3D or plane strain
-        return 2*mu*epsilon(u) + _lambda*ufl.tr(epsilon(u))*ufl.Identity(len(u))
+        return 2*mu*epsilon(u) + _lambda*ufl.tr(epsilon(u))*ufl.Identity(len(u))   
         
     def sigma_thermal(): # thermal stress independent from u goes into the rhs
-        return 0.0
+        return volumetric_thermal_expansion * _lambda * (T - reference_temperature) * ufl.Identity(2)
         
     # Boundary conditions
     dim = mesh.topology.dim
@@ -89,7 +95,7 @@ def form_fem(fem, opt):
 
     # Establish the equilibrium and adjoint equations
     lhs = ufl.inner(sigma(u), epsilon(v))*dx
-    rhs = ufl.dot(b, v)*dx # add thermal part here
+    rhs = ufl.dot(b, v)*dx + ufl.inner(sigma_thermal(), epsilon(v))*dx # added thermal part here
     for marker, t in enumerate(tractions):
         rhs += ufl.dot(t, v)*ds(marker)
     if opt["opt_compliance"]:
@@ -101,8 +107,8 @@ def form_fem(fem, opt):
                                    spring_vec, [bc], fem["petsc_options"])
 
     # Define optimization-related variables
-    # need to add thermal part here?
-    opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx
+    # thermal part added to compliance does not converge
+    opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx # -sigma_thermal()
     opt["compliance"] = ufl.inner(sigma(u_field), epsilon(u_field))*dx
     opt["volume"] = rho_phys_field*dx
     opt["total_volume"] = Constant(mesh, 1.0)*dx
