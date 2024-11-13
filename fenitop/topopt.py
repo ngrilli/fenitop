@@ -108,4 +108,5 @@ def topopt(fem, opt):
     values = S_comm.gather(rho_phys_field)
     if comm.rank == 0:
         plotter.plot(values)
-    save_xdmf(fem["mesh"], rho_phys_field)
+    save_xdmf(fem["mesh"], rho_phys_field, "density")
+    save_xdmf(fem["mesh"], u_field, "u", "u_field_")

@@ -43,8 +43,10 @@ fem = {  # FEM parameters
     "volumetric thermal expansion": 1.6e-5,
     "reference temperature": 293.0,
     "disp_bc": lambda x: np.isclose(x[0], 0),
-    "traction_bcs": [[(0.0, -100.0),
-                      lambda x: (np.isclose(x[0], 60) & np.greater(x[1], 8) & np.less(x[1], 12))]],
+    "traction_bcs": [[(100.0, 0.0), lambda x: (np.isclose(x[0], 60) & np.greater(x[1], -1) & np.less(x[1], 21))]],
+    # shear force
+    #"traction_bcs": [[(0.0, -100.0),
+    #                  lambda x: (np.isclose(x[0], 60) & np.greater(x[1], 8) & np.less(x[1], 12))]],
     "body_force": (0, 0),
     "quadrature_degree": 2,
     "petsc_options": {
@@ -54,7 +56,7 @@ fem = {  # FEM parameters
 }
 
 opt = {  # Topology optimization parameters
-    "max_iter": 400,
+    "max_iter": 500,
     "opt_tol": 1e-5,
     "vol_frac": 0.5,
     "solid_zone": lambda x: np.full(x.shape[1], False),

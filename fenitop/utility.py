@@ -224,8 +224,8 @@ class Plotter():
             plotter.close()
 
 
-def save_xdmf(mesh, rho, path=""):
+def save_xdmf(mesh, rho, name, path=""):
     xdmf = dolfinx.io.XDMFFile(mesh.comm, path+"optimized_design.xdmf", "w")
     xdmf.write_mesh(mesh)
-    rho.name = "density"
+    rho.name = name
     xdmf.write_function(rho)
