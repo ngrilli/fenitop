@@ -45,8 +45,8 @@ def form_fem(fem, opt):
     rho_phys_field = Function(S)  # Physical density field
     
     x = ufl.SpatialCoordinate(mesh)
-    T = Function(S) # temperature field 
-    T_ex = 293.0 + 2000000*ufl.exp(-((x[0]-40.0)**2-(x[1]-10.0)**2)/25)
+    T = Function(S) # temperature field
+    T_ex = 293.0 + 10.0*ufl.exp(-((x[1]-10.0)**2)/25)
     expr = Expression(T_ex, V.element.interpolation_points())
     T.interpolate(expr)
 
@@ -66,7 +66,7 @@ def form_fem(fem, opt):
         return 2*mu*epsilon(u) + _lambda*ufl.tr(epsilon(u))*ufl.Identity(len(u))   
         
     def sigma_thermal(): # thermal stress independent from u goes into the rhs
-        return volumetric_thermal_expansion * _lambda * (T - reference_temperature) * ufl.Identity(2)
+        return volumetric_thermal_expansion * (3.0 * _lambda + 2.0 * mu) * (T - reference_temperature) * ufl.Identity(2)
         
     # Boundary conditions
     dim = mesh.topology.dim

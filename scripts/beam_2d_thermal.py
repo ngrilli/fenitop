@@ -38,12 +38,12 @@ else:
 fem = {  # FEM parameters
     "mesh": mesh,
     "mesh_serial": mesh_serial,
-    "young's modulus": 100,
-    "poisson's ratio": 0.25,
-    "volumetric thermal expansion": 1.0e-5,
+    "young's modulus": 200e9,
+    "poisson's ratio": 0.27,
+    "volumetric thermal expansion": 1.6e-5,
     "reference temperature": 293.0,
     "disp_bc": lambda x: np.isclose(x[0], 0),
-    "traction_bcs": [[(0.0, -0.01),
+    "traction_bcs": [[(0.0, -100.0),
                       lambda x: (np.isclose(x[0], 60) & np.greater(x[1], 8) & np.less(x[1], 12))]],
     "body_force": (0, 0),
     "quadrature_degree": 2,
@@ -54,7 +54,7 @@ fem = {  # FEM parameters
 }
 
 opt = {  # Topology optimization parameters
-    "max_iter": 200,
+    "max_iter": 400,
     "opt_tol": 1e-5,
     "vol_frac": 0.5,
     "solid_zone": lambda x: np.full(x.shape[1], False),
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     topopt(fem, opt)
 
 # Execute the code in parallel:
-# mpirun -n 8 python3 scripts/beam_2d.py
+# mpirun -n 8 python3 scripts/beam_2d_thermal.py
