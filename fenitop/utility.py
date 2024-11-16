@@ -4,6 +4,8 @@ Authors:
 - Chao Wang (chaow4@illinois.edu)
 - Xiaojia Shelly Zhang (zhangxs@illinois.edu)
 
+- Nicolò Grilli updated to dolfinx 0.9
+
 Sponsors:
 - U.S. National Science Foundation (NSF) EAGER Award CMMI-2127134
 - U.S. Defense Advanced Research Projects Agency (DARPA) Young Faculty Award
@@ -168,7 +170,7 @@ class Communicator():
     def gather(self, func):
         """Gather data to Process 0 from all the other processes."""
         if type(func) is Function:
-            values_gather = self.comm.gather(func.vector.array, root=0)
+            values_gather = self.comm.gather(func.x.petsc_vec.array, root=0)
         elif type(func) is PETSc.Vec:
             values_gather = self.comm.gather(func.array, root=0)
         elif type(func) is np.ndarray:

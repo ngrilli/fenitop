@@ -4,6 +4,8 @@ Authors:
 - Chao Wang (chaow4@illinois.edu)
 - Xiaojia Shelly Zhang (zhangxs@illinois.edu)
 
+- Nicolò Grilli updated to dolfinx 0.9
+
 Sponsors:
 - U.S. National Science Foundation (NSF) EAGER Award CMMI-2127134
 - U.S. Defense Advanced Research Projects Agency (DARPA) Young Faculty Award
@@ -44,7 +46,7 @@ def topopt(fem, opt):
     if comm.rank == 0:
         plotter = Plotter(fem["mesh_serial"])
     num_consts = 1 if opt["opt_compliance"] else 2
-    num_elems = rho_field.vector.array.size
+    num_elems = rho_field.x.petsc_vec.array.size
     if not opt["use_oc"]:
         rho_old1, rho_old2 = np.zeros(num_elems), np.zeros(num_elems)
         low, upp = None, None
@@ -54,7 +56,7 @@ def topopt(fem, opt):
     solid, void = opt["solid_zone"](centers), opt["void_zone"](centers)
     rho_ini = np.full(num_elems, opt["vol_frac"])
     rho_ini[solid], rho_ini[void] = 0.995, 0.005
-    rho_field.vector.array[:] = rho_ini
+    rho_field.x.petsc_vec.array[:] = rho_ini
     rho_min, rho_max = np.zeros(num_elems), np.ones(num_elems)
     rho_min[solid], rho_max[void] = 0.99, 0.01
 
@@ -86,7 +88,7 @@ def topopt(fem, opt):
             dJdrho, dgdrho = dUdrho, np.vstack([dVdrho, dCdrho])
 
         # Update the design variables
-        rho_values = rho_field.vector.array.copy()
+        rho_values = rho_field.x.petsc_vec.array.copy()
         if opt["opt_compliance"] and opt["use_oc"]:
             rho_new, change = optimality_criteria(
                 rho_values, rho_min, rho_max, g_vec, dJdrho, dgdrho[0], opt["move"])
@@ -96,7 +98,7 @@ def topopt(fem, opt):
                 rho_old1, rho_old2, dJdrho, g_vec, dgdrho, low, upp, opt["move"])
             rho_old2 = rho_old1.copy()
             rho_old1 = rho_values.copy()
-        rho_field.vector.array = rho_new.copy()
+        rho_field.x.petsc_vec.array = rho_new.copy()
 
         # Output the histories
         opt_time = time.perf_counter() - opt_start_time
