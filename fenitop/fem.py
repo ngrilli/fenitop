@@ -46,7 +46,7 @@ def form_fem(fem, opt):
     
     x = ufl.SpatialCoordinate(mesh)
     T = Function(S) # temperature field
-    T_ex = 293.0 + 0.1*ufl.exp(-((x[0]-30.0)**2)/25)
+    T_ex = 293.0 + 0.1*ufl.exp(-((x[0]-5.0)**2)/25)
     expr = Expression(T_ex, V.element.interpolation_points())
     T.interpolate(expr)
 

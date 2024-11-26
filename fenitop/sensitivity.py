@@ -51,8 +51,8 @@ class Sensitivity():
             self.dfdrho_mat = create_matrix(self.dfdrho_form)
             self.problem, self.l_vec = problem, opt["l_vec"]
             self.u_field, self.lambda_field = u_field, lambda_field
-            self.dUdrho_vec = rho_phys.vector.copy()
-            self.prod_vec = u_field.vector.copy()
+            self.dUdrho_vec = rho_phys.x.petsc_vec.copy()
+            self.prod_vec = u_field.x.petsc_vec.copy()
 
     def __del__(self):
         if not self.opt_compliance:
@@ -63,8 +63,8 @@ class Sensitivity():
         if self.opt_compliance:
             C_value = self.comm.allreduce(assemble_scalar(self.C_form), op=MPI.SUM)
         else:
-            self.problem.lhs_mat.mult(self.u_field.vector, self.prod_vec)
-            C_value = self.u_field.vector.dot(self.prod_vec)
+            self.problem.lhs_mat.mult(self.u_field.x.petsc_vec, self.prod_vec)
+            C_value = self.u_field.x.petsc_vec.dot(self.prod_vec)
         with self.dCdrho_vec.localForm() as loc:
             loc.set(0)
         assemble_vector(self.dCdrho_vec, self.dCdrho_form)
@@ -75,15 +75,17 @@ class Sensitivity():
 
         # Displacement
         if not self.opt_compliance:
-            U_value = self.u_field.vector.dot(self.l_vec)
+            U_value = self.u_field.x.petsc_vec.dot(self.l_vec)
             self.problem.solve_adjoint()
             self.dfdrho_mat.zeroEntries()
             assemble_matrix(self.dfdrho_mat, self.dfdrho_form)
             self.dfdrho_mat.assemble()
-            self.dfdrho_mat.mult(self.lambda_field.vector, self.dUdrho_vec)
+            self.dfdrho_mat.mult(self.lambda_field.x.petsc_vec, self.dUdrho_vec)
         else:
             U_value, self.dUdrho_vec = 0, None
 
         func_values = [C_value, V_value, U_value]
         sensitivities = [self.dCdrho_vec, self.dVdrho_vec_copy, self.dUdrho_vec]
         return func_values, sensitivities
+        
+        # Stress criterion

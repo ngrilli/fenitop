@@ -77,6 +77,7 @@ def topopt(fem, opt):
         linear_problem.solve_fem()
 
         # Compute function values and sensitivities
+        # sensitivities contain information about dUdrho_vec
         [C_value, V_value, U_value], sensitivities = sens_problem.evaluate()
         heaviside.backward(sensitivities)
         [dCdrho, dVdrho, dUdrho] = density_filter.backward(sensitivities)
