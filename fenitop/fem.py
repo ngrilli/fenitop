@@ -100,6 +100,10 @@ def form_fem(fem, opt):
         rhs += ufl.dot(t, v)*ds(marker)
     if opt["opt_compliance"]:
         spring_vec = opt["l_vec"] = None
+    elif opt["opt_residual_stress"]: # create 3 vectors to select stress components for minimization
+        spring_vec1, opt["l_vec1"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"])
+        spring_vec2, opt["l_vec2"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
+        spring_vec3, opt["l_vec3"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
     else:
         spring_vec, opt["l_vec"] = create_mechanism_vectors(
             V, opt["in_spring"], opt["out_spring"])
@@ -107,8 +111,9 @@ def form_fem(fem, opt):
                                    spring_vec, [bc], fem["petsc_options"])
 
     # Define optimization-related variables
-    # thermal part added to compliance does not converge
-    opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx # -sigma_thermal()
+    # thermal part added to external force as it depends on physical density
+    opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx
+    opt["f_ext"] = ufl.inner(sigma_thermal(), epsilon(v))*dx
     opt["compliance"] = ufl.inner(sigma(u_field), epsilon(u_field))*dx
     opt["volume"] = rho_phys_field*dx
     opt["total_volume"] = Constant(mesh, 1.0)*dx
