@@ -54,7 +54,12 @@ def create_mechanism_vectors(func_space, in_spring, out_spring):
     l_vec.assemble()
     return spring_vec, l_vec
 
-
+# select locations where stress should be minimized
+# for the moment the code is tested with uniform selection
+def create_stress_optimization_vectors(func_space, in_spring, out_spring):
+    # TO DO
+    return 0
+    
 class LinearProblem:
     def __init__(self, u, lam, lhs, rhs, l_vec, spring_vec, bcs=[], petsc_options={}):
         """Initialize a linear problem."""

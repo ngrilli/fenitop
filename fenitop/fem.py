@@ -66,8 +66,15 @@ def form_fem(fem, opt):
         return 2*mu*epsilon(u) + _lambda*ufl.tr(epsilon(u))*ufl.Identity(len(u))   
         
     def sigma_thermal(): # thermal stress independent from u goes into the rhs
-        return volumetric_thermal_expansion * (3.0 * _lambda + 2.0 * mu) * (T - reference_temperature) * ufl.Identity(2)
-        
+        return volumetric_thermal_expansion * (3.0 * _lambda + 2.0 * mu) * (T - reference_temperature) * ufl.Identity(len(u))
+
+    # Indicator for stress minimization
+    # example: uniform in space selecting only \sigma_{xx}
+    Ljk = ufl.as_matrix([[1.0,0.0],[0.0,0.0]])
+    
+    # elasticity tensor: _lambda * delta_{jk} delta_{lm} + 2 * mu * delta_{jl} delta_{km}
+    CjklmLjk = 2*mu*Ljk + _lambda*ufl.tr(Ljk)*ufl.Identity(len(u))
+    
     # Boundary conditions
     dim = mesh.topology.dim
     fdim = dim - 1
@@ -100,7 +107,7 @@ def form_fem(fem, opt):
         rhs += ufl.dot(t, v)*ds(marker)
     if opt["opt_compliance"]:
         spring_vec = opt["l_vec"] = None
-    elif opt["opt_residual_stress"]: # create 3 vectors to select stress components for minimization
+    elif opt["opt_residual_stress"]: # create 3 vectors to select stress components for minimization, is this needed?
         spring_vec1, opt["l_vec1"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"])
         spring_vec2, opt["l_vec2"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
         spring_vec3, opt["l_vec3"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
@@ -109,7 +116,7 @@ def form_fem(fem, opt):
             V, opt["in_spring"], opt["out_spring"])
     linear_problem = LinearProblem(u_field, lambda_field, lhs, rhs, opt["l_vec"],
                                    spring_vec, [bc], fem["petsc_options"])
-
+                                   
     # Define optimization-related variables
     # thermal part added to external force as it depends on physical density
     opt["f_int"] = ufl.inner(sigma(u_field), epsilon(v))*dx
@@ -117,5 +124,7 @@ def form_fem(fem, opt):
     opt["compliance"] = ufl.inner(sigma(u_field), epsilon(u_field))*dx
     opt["volume"] = rho_phys_field*dx
     opt["total_volume"] = Constant(mesh, 1.0)*dx
-
+    opt["stress_to_minimize"] = ufl.inner(sigma(u_field),Ljk)*dx
+    opt["stress_to_minimize_derivative"] = ufl.derivative(opt["stress_to_minimize"], u_field, v)
+    
     return linear_problem, u_field, lambda_field, rho_field, rho_phys_field

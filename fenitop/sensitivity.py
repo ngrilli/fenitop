@@ -53,7 +53,15 @@ class Sensitivity():
             self.u_field, self.lambda_field = u_field, lambda_field
             self.dUdrho_vec = rho_phys.x.petsc_vec.copy()
             self.prod_vec = u_field.x.petsc_vec.copy()
-
+            
+        # Stress criterion
+        self.opt_residual_stress = opt["opt_residual_stress"]
+        if (True): # if (self.opt_residual_stress):
+            dfdU_form = form(opt["stress_to_minimize_derivative"])
+            self.dfdU_vec = create_vector(dfdU_form)
+            assemble_vector(self.dfdU_vec,dfdU_form)
+            self.dfdU_vec.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+            
     def __del__(self):
         if not self.opt_compliance:
             self.prod_vec.destroy()
