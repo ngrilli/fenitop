@@ -27,8 +27,12 @@ from petsc4py import PETSc
 
 class Sensitivity():
     def __init__(self, comm, opt, problem, u_field, lambda_field, rho_phys):
+        self.opt_compliance = opt["opt_compliance"]
+        self.opt_displacement = opt["opt_displacement"]
+        self.opt_residual_stress = opt["opt_residual_stress"]
+        
         # Compliance
-        if opt["opt_compliance"]:
+        if self.opt_compliance:
             self.C_form = form(opt["compliance"])
         self.dCdrho_form = form(-ufl.derivative(opt["compliance"], rho_phys))
         self.dCdrho_vec = create_vector(self.dCdrho_form)
@@ -45,8 +49,7 @@ class Sensitivity():
         self.dVdrho_vec /= self.total_volume
 
         # Displacement
-        self.opt_compliance = opt["opt_compliance"]
-        if not self.opt_compliance:
+        if (self.opt_displacement or self.opt_residual_stress):
             self.dfdrho_form = form(ufl.adjoint(ufl.derivative(opt["f_int"], rho_phys)))
             self.dfdrho_mat = create_matrix(self.dfdrho_form)
             self.problem, self.l_vec = problem, opt["l_vec"]
@@ -55,12 +58,13 @@ class Sensitivity():
             self.prod_vec = u_field.x.petsc_vec.copy()
             
         # Stress criterion
-        self.opt_residual_stress = opt["opt_residual_stress"]
-        if (True): # if (self.opt_residual_stress):
+        if self.opt_residual_stress:
             dfdU_form = form(opt["stress_to_minimize_derivative"])
             self.dfdU_vec = create_vector(dfdU_form)
             assemble_vector(self.dfdU_vec,dfdU_form)
             self.dfdU_vec.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+            #print(self.dfdU_vec.getSize())
+            self.l_vec = self.dfdU_vec
             
     def __del__(self):
         if not self.opt_compliance:
@@ -84,7 +88,7 @@ class Sensitivity():
         # Displacement
         if not self.opt_compliance:
             U_value = self.u_field.x.petsc_vec.dot(self.l_vec)
-            self.problem.solve_adjoint()
+            self.problem.solve_adjoint(self.l_vec)
             self.dfdrho_mat.zeroEntries()
             assemble_matrix(self.dfdrho_mat, self.dfdrho_form)
             self.dfdrho_mat.assemble()

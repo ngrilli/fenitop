@@ -56,7 +56,7 @@ fem = {  # FEM parameters
 }
 
 opt = {  # Topology optimization parameters
-    "max_iter": 500,
+    "max_iter": 200,
     "opt_tol": 1e-5,
     "vol_frac": 0.5,
     "solid_zone": lambda x: np.full(x.shape[1], False),
@@ -69,6 +69,8 @@ opt = {  # Topology optimization parameters
     "use_oc": True,
     "move": 0.02,
     "opt_compliance": True,
+    "opt_displacement": False,
+    "opt_residual_stress": False,
 }
 
 if __name__ == "__main__":

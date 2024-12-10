@@ -72,6 +72,7 @@ def form_fem(fem, opt):
     # example: uniform in space selecting only \sigma_{xx}
     Ljk = ufl.as_matrix([[1.0,0.0],[0.0,0.0]])
     
+    # CjklmLjk is not used because derivative is calculated using ufl
     # elasticity tensor: _lambda * delta_{jk} delta_{lm} + 2 * mu * delta_{jl} delta_{km}
     CjklmLjk = 2*mu*Ljk + _lambda*ufl.tr(Ljk)*ufl.Identity(len(u))
     
@@ -105,15 +106,11 @@ def form_fem(fem, opt):
     rhs = ufl.dot(b, v)*dx + ufl.inner(sigma_thermal(), epsilon(v))*dx # added thermal part here
     for marker, t in enumerate(tractions):
         rhs += ufl.dot(t, v)*ds(marker)
-    if opt["opt_compliance"]:
-        spring_vec = opt["l_vec"] = None
-    elif opt["opt_residual_stress"]: # create 3 vectors to select stress components for minimization, is this needed?
-        spring_vec1, opt["l_vec1"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"])
-        spring_vec2, opt["l_vec2"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
-        spring_vec3, opt["l_vec3"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"]) # TO DO: change indicator
-    else:
-        spring_vec, opt["l_vec"] = create_mechanism_vectors(
-            V, opt["in_spring"], opt["out_spring"])
+        
+    spring_vec = opt["l_vec"] = None
+    if (opt["opt_displacement"] or opt["opt_residual_stress"]):
+        spring_vec, opt["l_vec"] = create_mechanism_vectors(V, opt["in_spring"], opt["out_spring"])
+            
     linear_problem = LinearProblem(u_field, lambda_field, lhs, rhs, opt["l_vec"],
                                    spring_vec, [bc], fem["petsc_options"])
                                    

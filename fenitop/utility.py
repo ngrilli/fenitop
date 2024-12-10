@@ -52,6 +52,7 @@ def create_mechanism_vectors(func_space, in_spring, out_spring):
             l_vec.setValues(ctrl_dofs, [1.0,]*ctrl_dofs.size)
     spring_vec.assemble()
     l_vec.assemble()
+    #print(l_vec.getSize())
     return spring_vec, l_vec
 
 # select locations where stress should be minimized
@@ -60,6 +61,7 @@ def create_stress_optimization_vectors(func_space, in_spring, out_spring):
     # TO DO
     return 0
     
+# TO DO: spring_vec is not needed for stress optimization, need to adjust flags
 class LinearProblem:
     def __init__(self, u, lam, lhs, rhs, l_vec, spring_vec, bcs=[], petsc_options={}):
         """Initialize a linear problem."""
@@ -104,11 +106,11 @@ class LinearProblem:
         self.solver.solve(self.rhs_vec, self.u_wrap)
         self.u.x.scatter_forward()
 
-    def solve_adjoint(self):
+    def solve_adjoint(self,dFdU):
         """Solve K*lambda=-L for the adjoint equation."""
-        self.solver.solve(-self.l_vec, self.lam_wrap)
+        self.solver.solve(-dFdU, self.lam_wrap)
         self.lam.x.scatter_forward()
-
+        
     def __del__(self):
         self.solver.destroy()
         self.lhs_mat.destroy()
