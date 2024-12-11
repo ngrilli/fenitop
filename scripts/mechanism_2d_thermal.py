@@ -60,7 +60,7 @@ fem = {  # FEA parameters
 }
 
 opt = {  # Topology optimization parameters
-    "max_iter": 50,
+    "max_iter": 500,
     "opt_tol": 1e-5,
     "vol_frac": 0.25,
     "solid_zone": lambda x: ((np.less(x[0], 0.5) | np.greater(x[0], 9.5))
@@ -76,7 +76,7 @@ opt = {  # Topology optimization parameters
     "move": 0.05,
     "opt_compliance": False,
     "opt_displacement": True,
-    "opt_residual_stress": True,
+    "opt_residual_stress": False,
     "in_spring": [in_locator, "x", 0.2],
     "out_spring": [out_locator, "x", 0.2],
     "compliance_bound": 0.5,

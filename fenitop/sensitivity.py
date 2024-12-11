@@ -39,8 +39,7 @@ class Sensitivity():
 
         # Volume
         self.comm = comm
-        self.total_volume = comm.allreduce(
-            assemble_scalar(form(opt["total_volume"])), op=MPI.SUM)
+        self.total_volume = comm.allreduce(assemble_scalar(form(opt["total_volume"])), op=MPI.SUM)
         self.V_form = form(opt["volume"])
         dVdrho_form = form(ufl.derivative(opt["volume"], rho_phys))
         self.dVdrho_vec = create_vector(dVdrho_form)
@@ -53,6 +52,7 @@ class Sensitivity():
             self.dfdrho_form = form(ufl.adjoint(ufl.derivative(opt["f_int"], rho_phys)))
             self.dfdrho_mat = create_matrix(self.dfdrho_form)
             self.problem, self.l_vec = problem, opt["l_vec"]
+            print(self.l_vec.getSize())
             self.u_field, self.lambda_field = u_field, lambda_field
             self.dUdrho_vec = rho_phys.x.petsc_vec.copy()
             self.prod_vec = u_field.x.petsc_vec.copy()
@@ -63,7 +63,7 @@ class Sensitivity():
             self.dfdU_vec = create_vector(dfdU_form)
             assemble_vector(self.dfdU_vec,dfdU_form)
             self.dfdU_vec.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
-            #print(self.dfdU_vec.getSize())
+            print(self.dfdU_vec.getSize())
             self.l_vec = self.dfdU_vec
             
     def __del__(self):
